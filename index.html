@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jadwal Pelajaran - Deteksi Real-time</title>
+<style>
+:root {
+    --primary: #1976d2;
+    --primary-dark: #1565c0;
+    --secondary: #42a5f5;
+    --current: #4caf50;
+    --next: #ff9800;
+    --tomorrow: #9c27b0;
+    --bg-light: #f5f5f5;
+    --text-dark: #333;
+    --break: #e91e63;
+    --finished: #f44336;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 50%, #e8f5e9 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--text-dark);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+    animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* HEADER */
+.header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 25px 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    z-index: 0;
+}
+
+.header-content {
+    position: relative;
+    z-index: 1;
+}
+
+.header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.subtitle {
+    opacity: 0.9;
+    margin-bottom: 20px;
+}
+
+/* CURRENT LESSON HIGHLIGHT */
+.current-lesson-highlight {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.highlight-title {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    color: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.highlight-title::before {
+    content: "🎯";
+    font-size: 1.5em;
+}
+
+.lesson-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.info-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    flex: 1;
+    min-width: 200px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.info-label {
+    font-size: 0.9em;
+    color: var(--primary);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 1.3em;
+    font-weight: 700;
+}
+
+#currentSubject {
+    color: var(--current);
+}
+
+#currentTeacher {
+    color: var(--primary-dark);
+}
+
+#currentTime {
+    color: var(--next);
+}
+
+.time-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.time-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 180px;
+    transition: all 0.3s;
+}
+
+.time-box:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.time-box .label {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin-bottom: 5px;
+}
+
+#clock {
+    font-size: 1.8em;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+}
+
+#date {
+    font-size: 1.1em;
+}
+
+/* SCHEDULE SECTION */
+.schedule-container {
+    padding: 25px;
+}
+
+.section-title {
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+    font-size: 1.8em;
+}
+
+/* DAY TABS */
+.day-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.day-tab {
+    padding: 12px 25px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    font-size: 1em;
+    position: relative;
+    overflow: hidden;
+}
+
+.day-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.day-tab:hover::before {
+    left: 100%;
+}
+
+.day-tab:hover {
+    background: #e0e0e0;
+    transform: translateY(-2px);
+}
+
+.day-tab.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+}
+
+.day-tab.today {
+    position: relative;
+    border: 2px solid var(--current);
+}
+
+.day-tab.today::after {
+    content: "HARI INI";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--current);
+    color: white;
+    font-size: 0.6em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+    animation: bounce 2s infinite;
+}
+
+.day-tab.tomorrow {
+    position: relative;
+    border: 2px solid var(--tomorrow);
+}
+
+.day-tab.tomorrow::after {
+    content: "BESOK";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--tomorrow);
+    color: white;
+    font-size: 0.6em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+    animation: pulsePurple 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes pulsePurple {
+    0% { box-shadow: 0 0 0 0 rgba(156, 39, 176, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(156, 39, 176, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(156, 39, 176, 0); }
+}
+
+/* SCHEDULE TABLE */
+.schedule-table {
+    display: grid;
+    grid-template-columns: 100px repeat(6, 1fr);
+    gap: 10px;
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.schedule-header {
+    background: var(--primary);
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 8px;
+    font-size: 1.1em;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+}
+
+.time-slot {
+    background: white;
+    border: 2px solid #e9ecef;
+    padding: 15px 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s;
+    min-height: 100px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.time-slot::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background-color 0.3s;
+}
+
+.time-slot:hover {
+    border-color: var(--secondary);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.time-slot:hover::after {
+    background: var(--secondary);
+}
+
+.time-slot.current {
+    background: linear-gradient(135deg, var(--current), #66bb6a);
+    color: white;
+    border-color: var(--current);
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+}
+
+.time-slot.passed {
+    opacity: 0.6;
+    background: #f9f9f9;
+}
+
+.time-slot.future {
+    background: white;
+}
+
+.time-slot.break-time {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    border-color: var(--break);
+}
+
+.time-slot.break-time .time-label {
+    color: var(--break);
+}
+
+.time-slot.tomorrow-lesson {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    border-color: var(--tomorrow);
+}
+
+.time-slot.tomorrow-lesson .time-label {
+    color: var(--tomorrow);
+    font-weight: bold;
+}
+
+.time-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.time-slot.current .time-label,
+.time-slot.break-time .time-label,
+.time-slot.tomorrow-lesson .time-label {
+    color: rgba(255,255,255,0.9);
+}
+
+.icon {
+    font-size: 2em;
+    margin: 8px 0;
+    transition: transform 0.3s;
+}
+
+.time-slot:hover .icon {
+    transform: scale(1.2);
+}
+
+.subject {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.teacher {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.time-slot.current .teacher {
+    color: rgba(255,255,255,0.9);
+    font-weight: 600;
+}
+
+/* NEXT LESSON */
+.next-lesson-container {
+    background: linear-gradient(135deg, #fff3cd, #ffecb3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 30px;
+    border-left: 5px solid var(--next);
+    animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.next-lesson-title {
+    color: var(--next);
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.next-lesson-title::before {
+    content: "⏭️";
+}
+
+.next-lesson-info {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.next-lesson-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    flex: 1;
+    min-width: 200px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+
+.next-lesson-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.next-label {
+    font-size: 0.9em;
+    color: var(--next);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.next-value {
+    font-size: 1.2em;
+    font-weight: 700;
+}
+
+/* TOMORROW SCHEDULE */
+.tomorrow-container {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 30px;
+    border-left: 5px solid var(--tomorrow);
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.tomorrow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.tomorrow-title {
+    color: var(--tomorrow);
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tomorrow-title::before {
+    content: "📅";
+}
+
+.tomorrow-day {
+    background: white;
+    color: var(--tomorrow);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.tomorrow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.tomorrow-lesson-card {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.tomorrow-lesson-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    border-color: var(--tomorrow);
+}
+
+.tomorrow-time {
+    background: linear-gradient(135deg, var(--tomorrow), #ba68c8);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    min-width: 80px;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.tomorrow-lesson-info {
+    flex: 1;
+}
+
+.tomorrow-subject {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: var(--tomorrow);
+    margin-bottom: 5px;
+}
+
+.tomorrow-teacher {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* ANIMATIONS */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* STATUS INDICATOR */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-live {
+    background: #ff5252;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* NOTIFICATION */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--current);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transform: translateX(150%);
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    max-width: 300px;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.next {
+    background: var(--next);
+}
+
+.notification.break {
+    background: var(--break);
+}
+
+.notification.tomorrow {
+    background: var(--tomorrow);
+}
+
+/* FOOTER */
+.footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 0.9em;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+/* LOADING */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.1);
+    border-radius: 50%;
+    border-top-color: var(--primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+    .tomorrow-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 992px) {
+    .schedule-table {
+        grid-template-columns: 80px repeat(6, 1fr);
+        font-size: 0.9em;
+    }
+    
+    .time-slot {
+        min-height: 90px;
+        padding: 10px 5px;
+    }
+    
+    .tomorrow-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 2em;
+    }
+    
+    .lesson-info, .next-lesson-info {
+        flex-direction: column;
+    }
+    
+    .time-display {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .time-box {
+        min-width: auto;
+    }
+    
+    .schedule-table {
+        grid-template-columns: 70px repeat(6, 1fr);
+        font-size: 0.85em;
+    }
+    
+    .time-slot {
+        min-height: 80px;
+        padding: 8px 3px;
+    }
+    
+    .day-tab {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+    
+    .info-card, .next-lesson-card, .tomorrow-lesson-card {
+        min-width: 100%;
+    }
+    
+    .tomorrow-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .schedule-table {
+        grid-template-columns: 60px repeat(6, 1fr);
+        font-size: 0.8em;
+    }
+    
+    .icon {
+        font-size: 1.5em;
+    }
+    
+    .subject {
+        font-size: 1em;
+    }
+    
+    .header {
+        padding: 20px 15px;
+    }
+    
+    .schedule-container {
+        padding: 15px;
+    }
+    
+    .tomorrow-lesson-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .tomorrow-time {
+        width: 100%;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-content">
+            <h1>📚 Jadwal Pelajaran Sekolah</h1>
+            <p class="subtitle">Sistem Deteksi Pelajaran Real-time • Guru • Waktu • Jadwal Esok Hari</p>
+            
+            <!-- CURRENT LESSON HIGHLIGHT -->
+            <div class="current-lesson-highlight">
+                <div class="highlight-title">
+                    <span class="status-indicator status-live"></span>
+                    <span id="highlightTitle">DETEKSI PELAJARAN SEDANG BERLANGSUNG</span>
+                </div>
+                
+                <div class="lesson-info">
+                    <div class="info-card">
+                        <div class="info-label">MATA PELAJARAN</div>
+                        <div class="info-value" id="currentSubject">Memuat...</div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-label">GURU PENGAJAR</div>
+                        <div class="info-value" id="currentTeacher">Memuat...</div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-label">WAKTU</div>
+                        <div class="info-value" id="currentTime">Memuat...</div>
+                    </div>
+                </div>
+                
+                <div class="time-display">
+                    <div class="time-box">
+                        <div class="label">JAM SEKARANG</div>
+                        <div id="clock">00:00:00</div>
+                    </div>
+                    
+                    <div class="time-box">
+                        <div class="label">TANGGAL</div>
+                        <div id="date">Memuat...</div>
+                    </div>
+                    
+                    <div class="time-box">
+                        <div class="label">HARI INI</div>
+                        <div id="todayDay">Memuat...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SCHEDULE SECTION -->
+    <div class="schedule-container">
+        <h2 class="section-title">📅 Jadwal Pelajaran Hari Ini</h2>
+        
+        <!-- DAY TABS -->
+        <div class="day-tabs" id="dayTabs">
+            <!-- Day tabs will be generated here -->
+        </div>
+        
+        <!-- SCHEDULE TABLE -->
+        <div class="schedule-table" id="scheduleTable">
+            <!-- Schedule will be generated here -->
+        </div>
+        
+        <!-- NEXT LESSON -->
+        <div class="next-lesson-container">
+            <div class="next-lesson-title">PELAJARAN BERIKUTNYA HARI INI</div>
+            <div class="next-lesson-info">
+                <div class="next-lesson-card">
+                    <div class="next-label">MATA PELAJARAN</div>
+                    <div class="next-value" id="nextSubject">Memuat...</div>
+                </div>
+                
+                <div class="next-lesson-card">
+                    <div class="next-label">GURU</div>
+                    <div class="next-value" id="nextTeacher">Memuat...</div>
+                </div>
+                
+                <div class="next-lesson-card">
+                    <div class="next-label">WAKTU MULAI</div>
+                    <div class="next-value" id="nextTime">Memuat...</div>
+                </div>
+                
+                <div class="next-lesson-card">
+                    <div class="next-label">SISA WAKTU</div>
+                    <div class="next-value" id="timeRemaining">Memuat...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TOMORROW SCHEDULE -->
+        <div class="tomorrow-container">
+            <div class="tomorrow-header">
+                <div class="tomorrow-title">JADWAL PELAJARAN ESOK HARI</div>
+                <div class="tomorrow-day" id="tomorrowDay">-</div>
+            </div>
+            
+            <div class="tomorrow-grid" id="tomorrowSchedule">
+                <!-- Tomorrow schedule will be generated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>© 2023 Sistem Deteksi Jadwal Pelajaran Real-time • Update Otomatis Setiap Detik • Inklusi Jadwal Esok Hari</p>
+    </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notification" id="notification">
+    <div id="notificationMessage"></div>
+</div>
+
+<script>
+// ===== DATA JADWAL YANG DIPERBAIKI =====
+const scheduleData = {
+    "Senin": [
+        { time: "07:15-08:00", subject: "Upacara", icon: "🇮🇩", teacher: "-", duration: 45 },
+        { time: "08:00-10:30", subject: "Matematika Tingkat Lanjut", icon: "🧮", teacher: "Bu Mulyani", duration: 150 },
+        { time: "10:30-12:00", subject: "TIK Tingkat Lanjut", icon: "💻", teacher: "Pak Herry Paengestu Widodo", duration: 90 },
+        { time: "12:00-12:45", subject: "Ishoma", icon: "🕌", teacher: "-", duration: 45, isBreak: true },
+        { time: "12:45-14:15", subject: "B. Indonesia", icon: "📖", teacher: "Bu Zaibah", duration: 90 },
+        { time: "14:15-15:45", subject: "PKU", icon: "⚽", teacher: "Miss Asih Kurniati", duration: 90 },
+    ],
+    "Selasa": [
+        { time: "07:15-08:45", subject: "Matematika", icon: "📐", teacher: "Bu Norhazani", duration: 90 },
+        { time: "08:45-10:30", subject: "PJOK", icon: "⚽", teacher: "Pak Erizal", duration: 105 },
+        { time: "10:30-12:00", subject: "B. Indonesia", icon: "📖", teacher: "Bu Zaibah", duration: 90 },
+        { time: "12:00-12:45", subject: "Ishoma", icon: "🕌", teacher: "-", duration: 45, isBreak: true },
+        { time: "12:45-14:15", subject: "SJI", icon: "🌏", teacher: "Pak Syafrizalman", duration: 90 },
+        { time: "14:15-15:45", subject: "Seni Budaya", icon: "📖", teacher: "Bu Roha", duration: 90 }
+    ],
+    "Rabu": [
+        { time: "07:15-09:30", subject: "PAI", icon: "☪", teacher: "Bu Umi Hasanah", duration: 135 },
+        { time: "09:45-12:00", subject: "Fisika", icon: "💡", teacher: "Bu Heppy Samosir", duration: 135 },
+        { time: "12:00-12:45", subject: "Ishoma", icon: "🕌", teacher: "-", duration: 45, isBreak: true },
+        { time: "12:45-14:15", subject: "Ekonomi Tingkat Lanjut", icon: "💸", teacher: "Bu Dewiana", duration: 90 },
+        { time: "14:15-15:45", subject: "Matematika Tingkat Lanjut", icon: "🧮", teacher: "Bu Mulyani", duration: 90 },
+        { time: "-", subject: "Pulang", icon: "🏠", teacher: "-" }
+    ],
+    "Kamis": [
+        { time: "07:15-08:00", subject: "Pembiasaan/Senam", icon: "🗣", teacher: "-", duration: 45 },
+        { time: "08:00-10:30", subject: "Ekonomi Tingkat Lanjut", icon: "💸", teacher: "Bu Dewiana", duration: 150 },
+        { 
+            time: "10:30-13:30", 
+            subject: "Bahasa Inggris", 
+            icon: "👩‍🏫", 
+            teacher: "Ma'am Trismi Sumarni",
+            duration: 180,
+            isLongLesson: true,
+            breakInfo: "Ishoma 12:00-12:45 termasuk dalam pelajaran ini"
+        },
+        { time: "12:00-12:45", subject: "Ishoma", icon: "🕌", teacher: "-", duration: 45, isBreak: true, isBreakInLesson: true },
+        { time: "13:30-14:15", subject: "PJOK", icon: "⚽", teacher: "Pak Erizal", duration: 45 },
+        { time: "14:15-15:45", subject: "Fisika", icon: "💡", teacher: "Bu Heppy Samosir", duration: 90 },
+    ],
+    "Jumat": [
+        { time: "07:15-07:45", subject: "Kultum", icon: "☪", teacher: "-", duration: 30 },
+        { time: "07:45-09:05", subject: "Matematika", icon: "📐", teacher: "Bu Norhazani", duration: 80 },
+        { time: "09:05-10:40", subject: "PPKN", icon: "🏛️", teacher: "Bu Rijawati", duration: 95 },
+        { time: "10:40-11:15", subject: "TIK Tingkat Lanjut", icon: "💻", teacher: "Pak Herry Paengestu Widodo", duration: 35 },
+        { time: "11:15-13:10", subject: "Sholat Jumat", icon: "🕌", teacher: "-", duration: 115, isBreak: true },
+        { time: "13:10-14:30", subject: "TIK Tingkat Lanjut", icon: "💻", teacher: "Pak Herry Paengestu Widodo", duration: 80 }
+    ],
+    "Sabtu": [
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" }
+    ],
+    "Minggu": [
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" },
+        { time: "-", subject: "HARI LIBUR", icon: "😴", teacher: "-" }
+    ]
+};
+
+// ===== MAPPING HARI =====
+const dayMapping = {
+    "Monday": "Senin",
+    "Tuesday": "Selasa",
+    "Wednesday": "Rabu",
+    "Thursday": "Kamis",
+    "Friday": "Jumat",
+    "Saturday": "Sabtu",
+    "Sunday": "Minggu"
+};
+
+const dayOrder = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+// ===== VARIABLES GLOBAL =====
+let currentDay = "";
+let tomorrowDay = "";
+let currentLessonIndex = -1;
+let nextLessonIndex = -1;
+let lastNotificationTime = "";
+let lastNotificationType = "";
+
+// ===== FUNGSI INISIALISASI =====
+function initApp() {
+    createDayTabs();
+    updateRealTime();
+    updateTomorrowSchedule();
+    setInterval(updateRealTime, 1000); // Update setiap detik
+    setInterval(updateTomorrowSchedule, 60000); // Update jadwal besok setiap menit
+}
+
+// ===== FUNGSI GET HARI INDONESIA =====
+function getTodayIndonesian() {
+    const now = new Date();
+    const englishDay = now.toLocaleDateString('en-US', { weekday: 'long' });
+    return dayMapping[englishDay] || englishDay;
+}
+
+function getTomorrowIndonesian() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const englishDay = tomorrow.toLocaleDateString('en-US', { weekday: 'long' });
+    return dayMapping[englishDay] || englishDay;
+}
+
+// ===== BUAT TAB HARI =====
+function createDayTabs() {
+    const days = dayOrder.filter(day => scheduleData[day]);
+    const dayTabs = document.getElementById("dayTabs");
+    
+    days.forEach(day => {
+        const tab = document.createElement("button");
+        tab.className = "day-tab";
+        tab.textContent = day;
+        tab.dataset.day = day;
+        tab.onclick = () => switchDay(day);
+        
+        // Tandai hari ini
+        const today = getTodayIndonesian();
+        if (day === today) {
+            tab.classList.add("today");
+            currentDay = day;
+        }
+        
+        // Tandai hari esok
+        const tomorrow = getTomorrowIndonesian();
+        if (day === tomorrow) {
+            tab.classList.add("tomorrow");
+            tomorrowDay = day;
+        }
+        
+        dayTabs.appendChild(tab);
+    });
+    
+    // Aktifkan tab hari ini
+    const todayTab = document.querySelector(".day-tab.today");
+    if (todayTab) {
+        todayTab.classList.add("active");
+        renderSchedule(currentDay);
+    } else {
+        // Default ke Senin jika hari ini tidak ada jadwal
+        const firstTab = document.querySelector(".day-tab");
+        if (firstTab) {
+            firstTab.classList.add("active");
+            renderSchedule("Senin");
+        }
+    }
+}
+
+// ===== SWITCH DAY =====
+function switchDay(day) {
+    // Hapus kelas active dari semua tab
+    document.querySelectorAll(".day-tab").forEach(t => t.classList.remove("active"));
+    
+    // Tambah kelas active ke tab yang diklik
+    const activeTab = document.querySelector(`.day-tab[data-day="${day}"]`);
+    if (activeTab) {
+        activeTab.classList.add("active");
+    }
+    
+    // Render jadwal untuk hari tersebut
+    renderSchedule(day);
+}
+
+// ===== FUNGSI BANTU WAKTU YANG DIPERBAIKI =====
+function parseTimeToMinutes(timeString) {
+    if (!timeString || timeString === "-") return null;
+    
+    const [timePart] = timeString.split("-");
+    const [hours, minutes] = timePart.split(":").map(num => parseInt(num));
+    
+    return hours * 60 + minutes;
+}
+
+function calculateEndTime(startMinutes, duration) {
+    return startMinutes + duration;
+}
+
+function formatMinutesToTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function getCurrentLessonIndex(day, nowMinutes) {
+    const schedule = scheduleData[day];
+    if (!schedule) return -1;
+    
+    for (let i = 0; i < schedule.length; i++) {
+        const lesson = schedule[i];
+        if (!lesson.time || lesson.time === "-") continue;
+        
+        const startMinutes = parseTimeToMinutes(lesson.time);
+        if (startMinutes === null) continue;
+        
+        const duration = lesson.duration || 45;
+        const endMinutes = startMinutes + duration;
+        
+        // Khusus untuk Kamis - Bahasa Inggris yang panjang
+        if (day === "Kamis" && lesson.isLongLesson) {
+            const englishStart = 10 * 60 + 30; // 10:30
+            const englishEnd = 13 * 60 + 30;   // 13:30
+            
+            if (nowMinutes >= englishStart && nowMinutes < englishEnd) {
+                return i;
+            }
+        }
+        // Untuk pelajaran normal
+        else if (nowMinutes >= startMinutes && nowMinutes < endMinutes) {
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+// ===== RENDER JADWAL YANG DIPERBAIKI =====
+function renderSchedule(day) {
+    const schedule = scheduleData[day];
+    if (!schedule) return;
+    
+    const scheduleTable = document.getElementById("scheduleTable");
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    // Kosongkan tabel
+    scheduleTable.innerHTML = "";
+    
+    // Tambah header waktu
+    scheduleTable.innerHTML = `<div class="schedule-header">WAKTU</div>`;
+    
+    // Tambah header waktu untuk setiap slot
+    schedule.forEach(item => {
+        scheduleTable.innerHTML += `<div class="schedule-header">${item.time}</div>`;
+    });
+    
+    // Tambah header hari
+    scheduleTable.innerHTML += `<div class="schedule-header">${day}</div>`;
+    
+    // Tambah pelajaran
+    schedule.forEach((item, index) => {
+        const timeSlot = document.createElement("div");
+        
+        // Cek status pelajaran
+        let className = "time-slot";
+        
+        if (item.time !== "-") {
+            const startMinutes = parseTimeToMinutes(item.time);
+            if (startMinutes !== null) {
+                const duration = item.duration || 45;
+                const endMinutes = startMinutes + duration;
+                
+                // Deteksi status berdasarkan hari dan waktu
+                if (day === currentDay) {
+                    if (item.isBreak) {
+                        className += " break-time";
+                    } else if (nowMinutes >= startMinutes && nowMinutes < endMinutes) {
+                        className += " current";
+                    } else if (nowMinutes >= endMinutes) {
+                        className += " passed";
+                    } else if (nowMinutes < startMinutes) {
+                        className += " future";
+                    }
+                } else if (day === tomorrowDay) {
+                    className += " tomorrow-lesson";
+                }
+            }
+        } else {
+            // Untuk slot kosong/libur
+            className += " passed";
+        }
+        
+        timeSlot.className = className;
+        
+        // Format konten
+        if (item.time === "-") {
+            timeSlot.innerHTML = `
+                <div class="time-label">-</div>
+                <div class="icon">${item.icon}</div>
+                <div class="subject">${item.subject}</div>
+                <div class="teacher">${item.teacher}</div>
+            `;
+        } else {
+            // Tambah info khusus untuk pelajaran panjang
+            let additionalInfo = "";
+            if (item.isLongLesson) {
+                additionalInfo = `<div class="teacher" style="color: var(--break); font-size: 0.8em; margin-top: 5px;">${item.breakInfo}</div>`;
+            }
+            
+            timeSlot.innerHTML = `
+                <div class="time-label">${item.time}</div>
+                <div class="icon">${item.icon}</div>
+                <div class="subject">${item.subject}</div>
+                <div class="teacher">${item.teacher}</div>
+                ${additionalInfo}
+            `;
+        }
+        
+        // Tambah tooltip
+        let tooltip = `${item.subject} dengan ${item.teacher}`;
+        if (item.isLongLesson && item.breakInfo) {
+            tooltip += `\n${item.breakInfo}`;
+        }
+        timeSlot.title = tooltip;
+        
+        scheduleTable.appendChild(timeSlot);
+    });
+}
+
+// ===== UPDATE JADWAL ESOK HARI =====
+function updateTomorrowSchedule() {
+    const tomorrow = getTomorrowIndonesian();
+    const tomorrowScheduleElement = document.getElementById("tomorrowSchedule");
+    const tomorrowDayElement = document.getElementById("tomorrowDay");
+    
+    // Update judul hari esok
+    tomorrowDayElement.textContent = tomorrow;
+    tomorrowDay = tomorrow;
+    
+    // Cek apakah ada jadwal untuk besok
+    if (!scheduleData[tomorrow]) {
+        tomorrowScheduleElement.innerHTML = `
+            <div class="tomorrow-lesson-card" style="grid-column: 1 / -1; text-align: center; padding: 30px;">
+                <div style="font-size: 2em; margin-bottom: 10px;">📅</div>
+                <div style="font-size: 1.2em; font-weight: bold; color: var(--tomorrow); margin-bottom: 10px;">
+                    Tidak Ada Jadwal untuk ${tomorrow}
+                </div>
+                <div style="color: #666;">
+                    Hari ${tomorrow} adalah hari libur atau belum ada jadwal yang ditentukan.
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    const schedule = scheduleData[tomorrow];
+    tomorrowScheduleElement.innerHTML = "";
+    
+    schedule.forEach((item, index) => {
+        const lessonCard = document.createElement("div");
+        lessonCard.className = "tomorrow-lesson-card";
+        
+        // Format khusus untuk hari libur
+        if (item.time === "-") {
+            lessonCard.innerHTML = `
+                <div class="tomorrow-time" style="background: #999;">-</div>
+                <div class="tomorrow-lesson-info">
+                    <div class="tomorrow-subject">${item.subject}</div>
+                    <div class="tomorrow-teacher">${item.teacher}</div>
+                </div>
+            `;
+        } else {
+            // Tambah info khusus untuk pelajaran panjang
+            let additionalInfo = "";
+            if (item.isLongLesson) {
+                additionalInfo = `<div class="tomorrow-teacher" style="color: var(--break); margin-top: 5px;">${item.breakInfo}</div>`;
+            }
+            
+            lessonCard.innerHTML = `
+                <div class="tomorrow-time">${item.time}</div>
+                <div class="tomorrow-lesson-info">
+                    <div class="tomorrow-subject">${item.subject}</div>
+                    <div class="tomorrow-teacher">${item.teacher}</div>
+                    ${additionalInfo}
+                </div>
+                <div style="font-size: 1.5em;">${item.icon}</div>
+            `;
+        }
+        
+        // Tambah tooltip
+        let tooltip = `Pelajaran ${item.subject} jam ${item.time} dengan ${item.teacher}`;
+        if (item.isLongLesson && item.breakInfo) {
+            tooltip += `\n${item.breakInfo}`;
+        }
+        lessonCard.title = tooltip;
+        
+        tomorrowScheduleElement.appendChild(lessonCard);
+    });
+    
+    // Update tab hari esok
+    updateTomorrowTab();
+}
+
+// ===== UPDATE TAB ESOK HARI =====
+function updateTomorrowTab() {
+    document.querySelectorAll(".day-tab").forEach(tab => {
+        tab.classList.remove("tomorrow");
+        if (tab.dataset.day === tomorrowDay) {
+            tab.classList.add("tomorrow");
+        }
+    });
+}
+
+// ===== DETEKSI PELAJARAN REAL-TIME YANG DIPERBAIKI =====
+function updateRealTime() {
+    const now = new Date();
+    
+    // Update jam dan tanggal
+    document.getElementById("clock").textContent = 
+        now.toLocaleTimeString("id-ID", { hour12: false });
+    
+    document.getElementById("date").textContent = 
+        now.toLocaleDateString("id-ID", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+    
+    // Update hari ini
+    const today = getTodayIndonesian();
+    document.getElementById("todayDay").textContent = today;
+    currentDay = today;
+    
+    // Deteksi pelajaran sekarang
+    detectCurrentLesson(now);
+    
+    // Update tab hari ini
+    updateTodayTab();
+}
+
+// ===== DETEKSI PELAJARAN SEKARANG (DIPERBAIKI) =====
+function detectCurrentLesson(now) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowTime = now.toLocaleTimeString("id-ID", { hour12: false });
+    
+    // Reset state
+    currentLessonIndex = -1;
+    nextLessonIndex = -1;
+    let currentLesson = null;
+    let nextLesson = null;
+    
+    // Update highlight title berdasarkan waktu
+    const highlightTitle = document.getElementById("highlightTitle");
+    
+    // Cek apakah hari ini ada jadwal
+    if (!scheduleData[currentDay]) {
+        updateDisplayNoSchedule();
+        highlightTitle.textContent = "HARI LIBUR";
+        renderSchedule(currentDay);
+        return;
+    }
+    
+    const schedule = scheduleData[currentDay];
+    
+    // Cari pelajaran yang sedang berlangsung
+    currentLessonIndex = getCurrentLessonIndex(currentDay, nowMinutes);
+    
+    if (currentLessonIndex !== -1) {
+        currentLesson = schedule[currentLessonIndex];
+        highlightTitle.textContent = "PELAJARAN SEDANG BERLANGSUNG";
+    } else {
+        // Cek apakah sebelum jam sekolah
+        const firstValidLesson = schedule.find(lesson => lesson.time && lesson.time !== "-");
+        if (firstValidLesson) {
+            const firstStart = parseTimeToMinutes(firstValidLesson.time);
+            if (firstStart !== null && nowMinutes < firstStart) {
+                highlightTitle.textContent = "JAM SEKOLAH BELUM DIMULAI";
+            } else {
+                // Cek apakah setelah jam sekolah
+                const lastValidLesson = [...schedule].reverse().find(lesson => lesson.time && lesson.time !== "-");
+                if (lastValidLesson) {
+                    const lastStart = parseTimeToMinutes(lastValidLesson.time);
+                    if (lastStart !== null) {
+                        const lastDuration = lastValidLesson.duration || 45;
+                        const lastEnd = lastStart + lastDuration;
+                        
+                        if (nowMinutes >= lastEnd) {
+                            highlightTitle.textContent = "JAM SEKOLAH SUDAH SELESAI";
+                        } else {
+                            // Cek apakah waktu istirahat
+                            highlightTitle.textContent = "WAKTU ISTIRAHAT";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Cari pelajaran berikutnya
+    if (schedule) {
+        for (let i = 0; i < schedule.length; i++) {
+            const lesson = schedule[i];
+            if (!lesson.time || lesson.time === "-") continue;
+            
+            const startMinutes = parseTimeToMinutes(lesson.time);
+            if (startMinutes !== null && nowMinutes < startMinutes) {
+                nextLessonIndex = i;
+                nextLesson = lesson;
+                break;
+            }
+        }
+    }
+    
+    // Update tampilan
+    updateCurrentLessonDisplay(currentLesson, nextLesson, now);
+    updateScheduleHighlight();
+    
+    // Cek untuk notifikasi
+    checkForNotifications(currentLesson, nextLesson, now);
+}
+
+// ===== UPDATE DISPLAY PELAJARAN (DIPERBAIKI) =====
+function updateCurrentLessonDisplay(currentLesson, nextLesson, now) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    if (currentLesson) {
+        // Ada pelajaran sedang berlangsung
+        let displaySubject = currentLesson.subject;
+        let displayTeacher = currentLesson.teacher;
+        let displayTime = "";
+        
+        const startMinutes = parseTimeToMinutes(currentLesson.time);
+        if (startMinutes !== null) {
+            const duration = currentLesson.duration || 45;
+            const endMinutes = startMinutes + duration;
+            const remaining = endMinutes - nowMinutes;
+            
+            const startTime = formatMinutesToTime(startMinutes);
+            const endTime = formatMinutesToTime(endMinutes);
+            
+            // Khusus untuk Bahasa Inggris di Kamis saat ishoma
+            if (currentDay === "Kamis" && currentLesson.subject === "Bahasa Inggris" && 
+                nowMinutes >= 12 * 60 && nowMinutes < 12 * 60 + 45) {
+                displaySubject = "Bahasa Inggris (Ishoma)";
+            }
+            
+            displayTime = `${startTime} - ${endTime} (${remaining} menit lagi)`;
+        }
+        
+        document.getElementById("currentSubject").textContent = displaySubject;
+        document.getElementById("currentTeacher").textContent = displayTeacher;
+        document.getElementById("currentTime").textContent = displayTime;
+        
+        // Update next lesson
+        if (nextLesson) {
+            document.getElementById("nextSubject").textContent = nextLesson.subject;
+            document.getElementById("nextTeacher").textContent = nextLesson.teacher;
+            document.getElementById("nextTime").textContent = nextLesson.time;
+            
+            const nextStartMinutes = parseTimeToMinutes(nextLesson.time);
+            if (nextStartMinutes !== null) {
+                const timeToNext = nextStartMinutes - nowMinutes;
+                document.getElementById("timeRemaining").textContent = 
+                    `${timeToNext} menit lagi`;
+            } else {
+                document.getElementById("timeRemaining").textContent = "Waktu tidak diketahui";
+            }
+        } else {
+            // Tidak ada pelajaran berikutnya
+            document.getElementById("nextSubject").textContent = "Tidak ada";
+            document.getElementById("nextTeacher").textContent = "-";
+            document.getElementById("nextTime").textContent = "-";
+            document.getElementById("timeRemaining").textContent = "Hari ini selesai";
+        }
+    } else {
+        // Tidak ada pelajaran yang berlangsung
+        const firstLesson = scheduleData[currentDay] ? 
+            scheduleData[currentDay].find(lesson => lesson.time && lesson.time !== "-") : null;
+        
+        if (firstLesson) {
+            const firstStartMinutes = parseTimeToMinutes(firstLesson.time);
+            
+            if (firstStartMinutes !== null && nowMinutes < firstStartMinutes) {
+                // Sebelum jam sekolah
+                document.getElementById("currentSubject").textContent = "Belum dimulai";
+                document.getElementById("currentTeacher").textContent = "-";
+                document.getElementById("currentTime").textContent = `Jam sekolah mulai ${firstLesson.time}`;
+                
+                document.getElementById("nextSubject").textContent = firstLesson.subject;
+                document.getElementById("nextTeacher").textContent = firstLesson.teacher;
+                document.getElementById("nextTime").textContent = firstLesson.time;
+                
+                const timeToFirst = firstStartMinutes - nowMinutes;
+                document.getElementById("timeRemaining").textContent = 
+                    `${timeToFirst} menit lagi`;
+            } else {
+                // Setelah jam sekolah atau istirahat
+                const lastLesson = [...scheduleData[currentDay]]
+                    .reverse()
+                    .find(lesson => lesson.time && lesson.time !== "-");
+                    
+                if (lastLesson) {
+                    const lastStartMinutes = parseTimeToMinutes(lastLesson.time);
+                    if (lastStartMinutes !== null) {
+                        const lastDuration = lastLesson.duration || 45;
+                        const lastEndMinutes = lastStartMinutes + lastDuration;
+                        
+                        if (nowMinutes >= lastEndMinutes) {
+                            // Setelah jam sekolah
+                            document.getElementById("currentSubject").textContent = "Tidak ada";
+                            document.getElementById("currentTeacher").textContent = "-";
+                            document.getElementById("currentTime").textContent = "Jam sekolah sudah selesai";
+                            
+                            document.getElementById("nextSubject").textContent = "Libur";
+                            document.getElementById("nextTeacher").textContent = "-";
+                            document.getElementById("nextTime").textContent = "07:15";
+                            document.getElementById("timeRemaining").textContent = "Besok pagi";
+                        } else {
+                            // Di antara pelajaran (istirahat)
+                            document.getElementById("currentSubject").textContent = "Waktu Istirahat";
+                            document.getElementById("currentTeacher").textContent = "-";
+                            document.getElementById("currentTime").textContent = "Istirahat antar pelajaran";
+                            
+                            // Cari pelajaran berikutnya
+                            const next = scheduleData[currentDay].find(lesson => {
+                                if (!lesson.time || lesson.time === "-") return false;
+                                const startMinutes = parseTimeToMinutes(lesson.time);
+                                return startMinutes !== null && startMinutes > nowMinutes;
+                            });
+                            
+                            if (next) {
+                                document.getElementById("nextSubject").textContent = next.subject;
+                                document.getElementById("nextTeacher").textContent = next.teacher;
+                                document.getElementById("nextTime").textContent = next.time;
+                                
+                                const nextStartMinutes = parseTimeToMinutes(next.time);
+                                if (nextStartMinutes !== null) {
+                                    const timeToNext = nextStartMinutes - nowMinutes;
+                                    document.getElementById("timeRemaining").textContent = 
+                                        `${timeToNext} menit lagi`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Tidak ada jadwal sama sekali
+            updateDisplayNoSchedule();
+        }
+    }
+}
+
+// ===== UPDATE TAB HARI INI =====
+function updateTodayTab() {
+    document.querySelectorAll(".day-tab").forEach(tab => {
+        tab.classList.remove("today", "active");
+        if (tab.dataset.day === currentDay) {
+            tab.classList.add("today");
+            tab.classList.add("active");
+        }
+    });
+}
+
+// ===== UPDATE HIGHLIGHT PADA JADWAL =====
+function updateScheduleHighlight() {
+    // Update jadwal untuk hari ini
+    if (scheduleData[currentDay]) {
+        renderSchedule(currentDay);
+    }
+}
+
+// ===== NOTIFIKASI YANG DIPERBAIKI =====
+function checkForNotifications(currentLesson, nextLesson, now) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowTime = now.toLocaleTimeString("id-ID", { hour12: false, hour: "2-digit", minute: "2-digit" });
+    
+    // Cek jika pelajaran baru dimulai
+    if (currentLesson) {
+        const startMinutes = parseTimeToMinutes(currentLesson.time);
+        
+        if (startMinutes !== null) {
+            // Jika waktu sekarang tepat di awal pelajaran (dalam 1 menit pertama)
+            if (nowMinutes - startMinutes <= 1) {
+                const notificationKey = `lesson_start_${currentDay}_${startMinutes}`;
+                if (lastNotificationTime !== notificationKey) {
+                    let message = `Pelajaran ${currentLesson.subject} dimulai`;
+                    if (currentLesson.teacher !== "-") {
+                        message += ` dengan ${currentLesson.teacher}`;
+                    }
+                    showNotification(message, "current");
+                    lastNotificationTime = notificationKey;
+                    lastNotificationType = "start";
+                }
+            }
+            
+            // Jika pelajaran akan segera berakhir (5 menit terakhir)
+            const duration = currentLesson.duration || 45;
+            const endMinutes = startMinutes + duration;
+            
+            if (endMinutes - nowMinutes <= 5 && endMinutes - nowMinutes > 0) {
+                const notificationKey = `lesson_ending_${currentDay}_${startMinutes}`;
+                if (lastNotificationTime !== notificationKey) {
+                    const remaining = endMinutes - nowMinutes;
+                    showNotification(`${remaining} menit lagi pelajaran ${currentLesson.subject} selesai`, "current");
+                    lastNotificationTime = notificationKey;
+                    lastNotificationType = "ending";
+                }
+            }
+            
+            // Khusus untuk Bahasa Inggris di Kamis: notifikasi ishoma
+            if (currentDay === "Kamis" && currentLesson.subject === "Bahasa Inggris") {
+                if (nowMinutes >= 12 * 60 - 5 && nowMinutes < 12 * 60) {
+                    const notificationKey = `ishoma_soon_${currentDay}`;
+                    if (lastNotificationTime !== notificationKey) {
+                        showNotification("5 menit lagi waktu ishoma (tetap dalam pelajaran Bahasa Inggris)", "break");
+                        lastNotificationTime = notificationKey;
+                        lastNotificationType = "ishoma_soon";
+                    }
+                }
+                
+                if (nowMinutes >= 12 * 60 && nowMinutes < 12 * 60 + 5) {
+                    const notificationKey = `ishoma_start_${currentDay}`;
+                    if (lastNotificationTime !== notificationKey) {
+                        showNotification("Waktu ishoma (12:00-12:45) - pelajaran Bahasa Inggris berlanjut setelahnya", "break");
+                        lastNotificationTime = notificationKey;
+                        lastNotificationType = "ishoma_start";
+                    }
+                }
+            }
+        }
+    }
+    
+    // Cek jika akan istirahat biasa
+    if (nextLesson && !currentLesson) {
+        const startMinutes = parseTimeToMinutes(nextLesson.time);
+        
+        if (startMinutes !== null) {
+            // Jika pelajaran berikutnya akan dimulai dalam 5 menit
+            if (startMinutes - nowMinutes <= 5 && startMinutes - nowMinutes > 0) {
+                const notificationKey = `next_soon_${currentDay}_${startMinutes}`;
+                if (lastNotificationTime !== notificationKey) {
+                    const timeToNext = startMinutes - nowMinutes;
+                    showNotification(`${timeToNext} menit lagi pelajaran ${nextLesson.subject} dimulai`, "next");
+                    lastNotificationTime = notificationKey;
+                    lastNotificationType = "next";
+                }
+            }
+        }
+    }
+    
+    // Notifikasi untuk jadwal esok hari (hanya sekali sehari)
+    if (nowMinutes >= 16 * 60 && nowMinutes < 16 * 60 + 5) { // Antara jam 16:00-16:05
+        const notificationKey = `tomorrow_${currentDay}`;
+        if (lastNotificationTime !== notificationKey) {
+            const tomorrow = getTomorrowIndonesian();
+            if (scheduleData[tomorrow]) {
+                const firstLesson = scheduleData[tomorrow].find(lesson => lesson.time && lesson.time !== "-");
+                if (firstLesson) {
+                    showNotification(`Besok ${tomorrow}: ${firstLesson.subject} jam ${firstLesson.time} dengan ${firstLesson.teacher}`, "tomorrow");
+                    lastNotificationTime = notificationKey;
+                    lastNotificationType = "tomorrow";
+                }
+            }
+        }
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.getElementById("notification");
+    const messageEl = document.getElementById("notificationMessage");
+    
+    // Set pesan dan tipe
+    messageEl.textContent = message;
+    notification.className = "notification";
+    notification.classList.add(type);
+    
+    // Tampilkan notifikasi
+    notification.classList.add("show");
+    
+    // Sembunyikan setelah 5 detik
+    setTimeout(() => {
+        notification.classList.remove("show");
+    }, 5000);
+}
+
+function updateDisplayNoSchedule() {
+    document.getElementById("currentSubject").textContent = "Libur";
+    document.getElementById("currentTeacher").textContent = "-";
+    document.getElementById("currentTime").textContent = "Tidak ada jadwal hari ini";
+    
+    document.getElementById("nextSubject").textContent = "-";
+    document.getElementById("nextTeacher").textContent = "-";
+    document.getElementById("nextTime").textContent = "-";
+    document.getElementById("timeRemaining").textContent = "-";
+}
+
+// ===== INISIALISASI APLIKASI =====
+window.onload = initApp;
+</script>
+</body>
+</html>
